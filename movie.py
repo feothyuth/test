@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+import imdb
 
 # Load the movie ratings dataset
 ratings_data = pd.read_csv('ratings.csv')
@@ -30,12 +31,22 @@ def get_movie_recommendations(user_id, top_n=5):
     # Find the top N similar movies
     top_movie_indices = similarity_scores.argsort()[::-1][:top_n]
     top_movie_ids = user_movie_matrix.columns[top_movie_indices]
-    movie_recommendations = ratings_data[ratings_data['movie_id'].isin(top_movie_ids)]['title'].unique()
+    movie_recommendations = ratings_data[ratings_data['movie_id'].isin(top_movie_ids)][['title', 'movie_id']].drop_duplicates()
     return movie_recommendations
+
+# Function to get the movie poster URL using IMDbPY
+def get_movie_poster_url(movie_id):
+    ia = imdb.IMDb()
+    movie = ia.get_movie(movie_id)
+    return movie['full-size cover url']
 
 # Example usage
 user_id = 1
 recommendations = get_movie_recommendations(user_id, top_n=5)
+
 print(f"Recommended movies for user {user_id}:")
-for movie in recommendations:
-    print(movie)
+for _, movie in recommendations.iterrows():
+    movie_title = movie['title']
+    movie_id = movie['movie_id']
+    poster_url = get_movie_poster_url(movie_id)
+    print(f"{movie_title} - {poster_url}")
