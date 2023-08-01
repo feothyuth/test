@@ -41,6 +41,46 @@ def get_movie_poster_url(movie_id):
     movie = ia.get_movie(movie_id)
     return movie['full-size cover url']
 
+def get_movie_recommendations(user_id, top_n=5):
+    """
+    Get movie recommendations for a user using cosine similarity and genre preferences.
+
+    Args:
+        user_id (int): The user ID.
+        top_n (int): The number of recommendations to return.
+
+    Returns:
+        pd.DataFrame: A DataFrame of the top N recommended movies for the user.
+    """
+
+    user_ratings = user_movie_matrix.loc[user_id]
+    user_genres = user_ratings.dot(ratings_data['genres']).sum()  # Calculate user's genre preferences
+
+    # Calculate the similarity matrix using both ratings and genres
+    similarity_scores = cosine_similarity(user_ratings, user_movie_matrix) + user_genres
+
+    # Find the top N similar movies
+    top_movie_indices = similarity_scores.argsort()[::-1][:top_n]
+    top_movie_ids = user_movie_matrix.columns[top_movie_indices]
+    movie_recommendations = ratings_data[ratings_data['movie_id'].isin(top_movie_ids)][['title', 'movie_id']].drop_duplicates()
+
+    # Get the movie poster URL for each recommendation
+    movie_recommendations['poster_url'] = movie_recommendations['movie_id'].apply(get_movie_poster_url)
+
+    return movie_recommendations
+
+# Example usage
+user_id = 1
+recommendations = get_movie_recommendations(user_id, top_n=5)
+
+print(f"Recommended movies for user {user_id}:")
+for _, movie in recommendations.iterrows():
+    movie_title = movie['title']
+    movie_id = movie['movie_id']
+    poster_url = movie['poster_url']
+    print(f"{movie_title} - {poster_url}")
+
+
 # Example usage
 user_id = 1
 recommendations = get_movie_recommendations(user_id, top_n=5)
